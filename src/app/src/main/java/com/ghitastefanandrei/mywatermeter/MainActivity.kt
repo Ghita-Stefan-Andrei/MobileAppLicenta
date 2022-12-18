@@ -15,6 +15,6 @@ class MainActivity : AppCompatActivity()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.value.text = "00005500"
+        binding.value.text = "00065500"
     }
 }
