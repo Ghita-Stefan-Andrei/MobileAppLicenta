@@ -1,16 +1,17 @@
 package com.ghitastefanandrei.mywatermeter
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.ghitastefanandrei.mywatermeter.databinding.ActivityMainBinding
 import com.sun.mail.imap.IMAPMessage
 import java.util.*
-import javax.mail.Folder
-import javax.mail.Session
+import javax.mail.*
 
 class MainActivity : AppCompatActivity()
 {
-
     private lateinit var binding:ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?)
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity()
         setContentView(binding.root)
 
         val esp32camSubject:String = "ESP32-CAM Photo Captured"
+        //lateinit var messages:Array<Message>
 
         val email:String = "esp32camlicenta@gmail.com"
         val password:String = "mcgd paai veol lssr"
@@ -34,7 +36,6 @@ class MainActivity : AppCompatActivity()
 
         val session = Session.getInstance(properties)
         val store = session.getStore("imap")
-        //lateinit var messages?//:Array<IMAPMessage>
 
         val thread = Thread {
             try {
@@ -42,31 +43,58 @@ class MainActivity : AppCompatActivity()
             } catch (e: Exception) {
                 System.err.println(e)
             }
+
             val inbox = store.getFolder("INBOX")
+
             inbox.open(Folder.READ_ONLY)
-
             val messages = inbox.messages
-            binding.mSubject.text = messages[3].subject
-            /*for (message in messages) {
-                binding.mSubject.text = message.subject
-                //Thread.sleep(2000)
-            }*/
-
+            lateinit var lastEspMessage:Message
+            for (message in messages)
+            {
+                if (message.subject == esp32camSubject)
+                {
+                    lastEspMessage = message
+                }
+            }
+            binding.mSubject.text = lastEspMessage.subject
+            displayImage(getImageAttachment(lastEspMessage), binding.WaterMeterIMG)
             inbox.close(false)
             store.close()
         }
 
         thread.start()
         thread.join()
-
-        /*inbox.open(Folder.READ_ONLY)
-
-        val messages = inbox.messages
-
-        for (message in messages) {
-            binding.mSubject.text = message.subject
-            Thread.sleep(2000)
+    }
+    fun getImageAttachment(message: Message): ByteArray? {
+        // Check if the message has a Multipart content
+        if (message.contentType.startsWith("multipart/")) {
+            val iparts = message.content as Multipart
+            // Iterate through the parts
+            for (i in 0 until iparts.count) {
+                val part = iparts.getBodyPart(i)
+                // Check if the part is an attachment
+                if (Part.ATTACHMENT.equals(part.disposition, ignoreCase = true)) {
+                    // Check if the attachment is an image
+                    if (part.contentType.startsWith("image/")) {
+                        // Retrieve the image data
+                        val imageData = part.inputStream.readBytes()
+                        return imageData
+                    }
+                }
+            }
         }
-*/
+        return null
+    }
+
+    fun displayImage(imageData: ByteArray?, imageView: ImageView) {
+        // Check if the image data is null
+        if (imageData == null) {
+            return
+        }
+
+        // Decode the image data into a Bitmap
+        val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+        // Set the Bitmap as the ImageView's source
+        imageView.setImageBitmap(bitmap)
     }
 }
